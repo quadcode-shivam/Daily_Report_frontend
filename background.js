@@ -1,5 +1,5 @@
-// Create an alarm to trigger every hour (60 minutes)
-chrome.alarms.create('hourlyReminder', { periodInMinutes: 60 }); // Every 60 minutes
+// Create an alarm to trigger every minute (1 minute)
+chrome.alarms.create('hourlyReminder', { periodInMinutes: 60 }); // Set to 1 for testing every minute
 
 // Add a listener for the alarm
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -7,8 +7,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icon.png', // Ensure the icon path is correct
-      title: 'Hourly Report Reminder',
-      message: 'Don’t forget to submit your end-of-day report!',
+      title: 'Reminder',
+      message: 'Please Report your Pusuing or Completed Task ',
       priority: 2
     });
   }

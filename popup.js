@@ -3,34 +3,42 @@ const viewReportButton = document.getElementById('viewReportButton');
 const reportPopup = document.getElementById('reportPopup');
 const viewReportPopup = document.getElementById('viewReportPopup');
 const reportTableBody = document.getElementById('reportTable').querySelector('tbody');
+const pageInfo = document.getElementById('pageInfo');
+const prevPageButton = document.getElementById('prevPage');
+const nextPageButton = document.getElementById('nextPage');
+const downloadCsvButton = document.getElementById('downloadCsvButton');
 
-// Function to hide both buttons
+let currentPage = 1;
+let totalPages = 1;
+const itemsPerPage = 5;
+
+
 function hideButtons() {
     addReportButton.style.display = 'none';
     viewReportButton.style.display = 'none';
 }
 
-// Function to show both buttons
+
 function showButtons() {
     addReportButton.style.display = 'inline-block';
     viewReportButton.style.display = 'inline-block';
 }
 
-// Show the add report popup and hide buttons
+
 addReportButton.addEventListener('click', () => {
     reportPopup.style.display = 'block';
     hideButtons();
 });
 
-// Close add report popup
+
 document.getElementById('closeAddPopup').addEventListener('click', () => {
     reportPopup.style.display = 'none';
     showButtons();
 });
 
-// Submit new report
+
 document.getElementById('reportForm').addEventListener('submit', async (event) => {
-    event.preventDefault(); // Prevent the default form submission behavior
+    event.preventDefault(); 
 
     const reportData = {
         task_description: document.getElementById('taskDescription').value,
@@ -49,9 +57,11 @@ document.getElementById('reportForm').addEventListener('submit', async (event) =
 
         if (response.ok) {
             alert('Report submitted successfully!');
-            document.getElementById('reportForm').reset(); // Reset the form fields
-            // Optionally, you can close the window or redirect
-            window.close(); // Closes the current window/tab
+            document.getElementById('reportForm').reset(); 
+            reportPopup.style.display = 'none'; 
+            showButtons();
+            currentPage = 1; 
+            await fetchReports();
         } else {
             alert('Error submitting report. Please try again.');
         }
@@ -61,26 +71,25 @@ document.getElementById('reportForm').addEventListener('submit', async (event) =
     }
 });
 
-// Show the view report popup and fetch reports
 viewReportButton.addEventListener('click', async () => {
     viewReportPopup.style.display = 'block';
     hideButtons();
     await fetchReports();
 });
 
-// Close view report popup
 document.getElementById('closeViewPopup').addEventListener('click', () => {
     viewReportPopup.style.display = 'none';
     showButtons();
 });
 
-// Fetch reports and populate the table
 async function fetchReports() {
     try {
-        const response = await fetch('http://localhost:8000/api/reports');
+        const response = await fetch(`http://localhost:8000/api/reports?page=${currentPage}&perPage=${itemsPerPage}`);
         if (response.ok) {
-            const reports = await response.json();
-            populateReportTable(reports);
+            const data = await response.json();
+            populateReportTable(data.reports);
+            totalPages = data.totalPages; 
+            updatePagination();
         } else {
             alert('Error fetching reports.');
         }
@@ -91,12 +100,12 @@ async function fetchReports() {
 }
 
 function populateReportTable(reports) {
-    reportTableBody.innerHTML = ''; // Clear previous rows
+    reportTableBody.innerHTML = ''; 
 
     reports.forEach((report) => {
         const row = document.createElement('tr');
         
-        // Create a main row for task title, edit, and delete buttons
+      
         row.innerHTML = `
             <td>${report.task_description}</td>
             <td class="text-center" style="width: 200px;">
@@ -108,21 +117,21 @@ function populateReportTable(reports) {
             </td>
         `;
 
-        // Add click event to toggle accordion details
+       
         row.addEventListener('click', () => toggleDetails(report.id));
 
         reportTableBody.appendChild(row);
 
-        // Create a hidden row for additional details (accordion content)
+  
         const detailsRow = document.createElement('tr');
         detailsRow.id = `details-${report.id}`;
-        detailsRow.style.display = 'none';  // Hide by default
+        detailsRow.style.display = 'none'; 
 
         detailsRow.innerHTML = `
              <td colspan="2">
                 <div class="p-3 bg-light border rounded">
-                    <Strong class="mb-2"> Issues Faced</Strong>
-                    <p class="mb-3 text-secondory" style="font-size:12px">${report.issues || 'No issues reported.'}</p>
+                    <strong class="mb-2">Issues Faced</strong>
+                    <p class="mb-3 text-secondary" style="font-size:12px">${report.issues || 'No issues reported.'}</p>
                     <div class="d-flex justify-content-between text-light">
                         <span class="badge bg-primary">Created At: ${new Date(report.created_at).toLocaleTimeString()}, ${new Date(report.created_at).toLocaleDateString()}</span>
                         <span class="badge bg-primary">Updated At: ${new Date(report.updated_at).toLocaleTimeString()}, ${new Date(report.updated_at).toLocaleDateString()}</span>
@@ -135,20 +144,82 @@ function populateReportTable(reports) {
     });
 }
 
-// Function to toggle the display of details row
+
 function toggleDetails(reportId) {
     const detailsRow = document.getElementById(`details-${reportId}`);
     detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
 }
 
+async function fetchAllReports() {
+    const allReports = [];
+    let currentPage = 1;
+    const perPage = 100;
+
+    while (true) {
+        try {
+            const response = await fetch(`http://localhost:8000/api/reports?page=${currentPage}&perPage=${perPage}`);
+            if (!response.ok) {
+                console.error('Error fetching all reports:', response.statusText);
+                break; 
+            }
+            const data = await response.json();
+            allReports.push(...data.reports);
+            if (currentPage >= data.totalPages) break; 
+            currentPage++;
+        } catch (error) {
+            console.error('Error fetching all reports:', error);
+            break;
+        }
+    }
+    return allReports;
+}
+
+downloadCsvButton.addEventListener('click', async () => {
+    try {
+        const reports = await fetchAllReports();
+        console.log('Fetched Reports for CSV:', reports); 
+
+        if (reports.length === 0) {
+            alert('No reports available for download.');
+            return;
+        }
+
+      
+        const csvHeaders = 'Task Description,Hours Worked,Issues\n';
+        const csvContent = 'data:text/csv;charset=utf-8,' + 
+            csvHeaders + 
+            reports.map(report => 
+                `${report.task_description || 'N/A'},${report.hours_worked || 0},${report.issues || 'None'}`
+            ).join('\n');
+
+    
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'daily_reports.csv');
+        document.body.appendChild(link);
+        link.click(); 
+        document.body.removeChild(link); 
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error('Error downloading CSV:', error);
+        alert('Error downloading CSV. Please try again.');
+    }
+});
+
 
 async function deleteReport(reportId) {
     if (confirm('Are you sure you want to delete this report?')) {
         try {
-            const response = await fetch(`http://localhost:8000/api/report/${reportId}`, { method: 'DELETE' });
+            const response = await fetch(`http://localhost:8000/api/report/${reportId}`, {
+                method: 'DELETE'
+            });
+
             if (response.ok) {
-                alert('Report deleted successfully');
-                await fetchReports();
+                alert('Report deleted successfully.');
+                fetchReports(); 
             } else {
                 alert('Error deleting report.');
             }
@@ -158,3 +229,24 @@ async function deleteReport(reportId) {
         }
     }
 }
+
+function updatePagination() {
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    prevPageButton.disabled = currentPage === 1;
+    nextPageButton.disabled = currentPage === totalPages;
+}
+
+
+prevPageButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        fetchReports();
+    }
+});
+
+nextPageButton.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+        currentPage++;
+        fetchReports();
+    }
+});

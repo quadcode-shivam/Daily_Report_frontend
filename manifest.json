@@ -1,15 +1,14 @@
 {
-    "manifest_version": 3,
-    "name": "Daily Report Submission",
-    "version": "1.0",
-    "description": "Easily submit your daily report at the end of the workday.",
-    "permissions": ["storage", "notifications"],
-    "action": {
-      "default_popup": "popup.html",
-      "default_icon": "icon.png"
-    },
-    "background": {
-      "service_worker": "background.js"
-    }
+  "manifest_version": 3,
+  "name": "Daily Report Submission",
+  "version": "1.0",
+  "description": "Easily submit your daily report at the end of the workday.",
+  "permissions": ["storage", "notifications", "alarms"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
   }
-  
+}

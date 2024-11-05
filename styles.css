@@ -134,3 +134,25 @@ input::placeholder, textarea::placeholder {
     background: #f1f1f1;
     border-radius: 10px;
 }
+.pagination-wrapper {
+    margin: 20px 0;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #e5120b;
+    border-color: #e5120b;
+    color: white;
+}
+
+.pagination .page-link {
+    color: #e5120b; /* Color for pagination links */
+}
+
+.pagination .page-link:hover {
+    background-color: #e5120b; /* Hover effect */
+    color: white; /* Change text color on hover */
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #c6c8ca; /* Disabled state color */
+}
